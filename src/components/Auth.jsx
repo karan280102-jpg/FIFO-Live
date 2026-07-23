@@ -41,40 +41,54 @@ export default function Auth() {
 
   return (
     <div className="ff-login-wrap">
+      <div className="ff-aurora"></div>
+      <div className="ff-grid-overlay"></div>
+
       <div className="ff-login-card">
-        <div className="ff-login-mark">F</div>
-        <div className="ff-display" style={{ fontSize: 30, textAlign: 'center' }}>FIFO LIVE</div>
-        <div style={{ textAlign: 'center', color: '#a89a83', fontSize: 12.5, marginBottom: 22 }}>
-          Farmley Cold Storage &middot; shared, live compliance tracker
+        <div className="ff-lane-intro">
+          <div className="blk"></div><div className="blk"></div><div className="blk"></div><div className="blk"></div><div className="blk"></div>
         </div>
 
-        <div className="ff-login-tabs">
+        <div className="ff-login-mark-wrap">
+          <div className="ff-login-mark-glow"></div>
+          <div className="ff-login-mark">F</div>
+        </div>
+
+        <div className="ff-hero-eyebrow">Farmley Cold Storage</div>
+        <div className="ff-hero-title">FIFO LIVE</div>
+        <div className="ff-fade-up" style={{ animationDelay: '0.5s', textAlign: 'center', color: '#a89a83', fontSize: 12.5, marginTop: 6, marginBottom: 22 }}>
+          Shared, live compliance tracker
+        </div>
+
+        <div className="ff-login-tabs ff-fade-up" style={{ animationDelay: '0.58s' }}>
           <button className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError(''); }}>Sign in</button>
           <button className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError(''); }}>Sign up</button>
         </div>
 
-        {mode === 'signup' && (
-          <>
-            <label className="ff-label">Your name</label>
-            <input className="ff-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Karan Sirohi" />
-          </>
-        )}
-        <label className="ff-label" style={{ marginTop: 14 }}>Email</label>
-        <input className="ff-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" />
-        <label className="ff-label" style={{ marginTop: 14 }}>Password</label>
-        <input className="ff-input" type="password" value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') submit(); }} placeholder="••••••••" />
+        <div className="ff-fade-up" style={{ animationDelay: '0.66s' }}>
+          {mode === 'signup' && (
+            <>
+              <label className="ff-label">Your name</label>
+              <input className="ff-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Karan Sirohi" />
+            </>
+          )}
+          <label className="ff-label" style={{ marginTop: 14 }}>Email</label>
+          <input className="ff-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" />
+          <label className="ff-label" style={{ marginTop: 14 }}>Password</label>
+          <input className="ff-input" type="password" value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); }} placeholder="••••••••" />
+        </div>
 
         {error && <div className="ff-error">{error}</div>}
         {notice && <div style={{ color: '#5fae7c', fontSize: 12, marginTop: 10 }}>{notice}</div>}
 
-        <button type="button" className="ff-btn-primary" style={{ width: '100%', marginTop: 18 }} onClick={submit} disabled={busy}>
+        <button type="button" className="ff-btn-primary ff-fade-up" style={{ animationDelay: '0.74s', width: '100%', marginTop: 18 }} onClick={submit} disabled={busy}>
           {mode === 'signup' ? <UserPlus size={15} /> : <LogInIcon size={15} />}
           {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
         </button>
 
-        <div className="ff-login-note">
+        <div className="ff-login-note ff-fade-up" style={{ animationDelay: '0.82s' }}>
           <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
             Real email/password accounts. Admin access is automatically granted only to the accounts named
