@@ -39,12 +39,12 @@ export default function OverviewTab({ lots }) {
           <div className="ff-panel-title">FIFO Compliance — Items Needing Attention</div>
           <div className="ff-panel-note">lowest-scoring items · full list under Item-Wise</div>
         </div>
-        <div style={{ height: Math.max(420, worstItems.length * 58 + 30) }}>
+        <div style={{ height: Math.max(380, worstItems.length * 40 + 30) }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={worstItems} layout="vertical" margin={{ top: 4, right: 60, left: 4, bottom: 4 }}>
               <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6e6455', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" width={320} tick={{ fill: '#a89a83', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
-              <RTooltip contentStyle={{ background: '#0d0b09', border: '1px solid rgba(212,175,90,0.32)', borderRadius: 8, fontSize: 12 }}
+              <YAxis type="category" dataKey="name" width={520} tick={{ fill: '#a89a83', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} />
+              <RTooltip cursor={false} contentStyle={{ background: '#0d0b09', border: '1px solid rgba(212,175,90,0.32)', borderRadius: 8, fontSize: 12 }}
                 formatter={(v) => [v + '%', 'FIFO']} labelStyle={{ color: '#f3ede0' }} />
               <Bar dataKey="pct" radius={[4, 4, 4, 4]} barSize={18}>
                 {worstItems.map((it, idx) => (<Cell key={idx} fill={it.color} />))}
@@ -67,7 +67,7 @@ export default function OverviewTab({ lots }) {
                 layout="vertical" margin={{ top: 6, right: 90, left: 4, bottom: 6 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#f3ede0', fontSize: 13 }} axisLine={false} tickLine={false} />
-                <RTooltip contentStyle={{ background: '#0d0b09', border: '1px solid rgba(212,175,90,0.32)', borderRadius: 8, fontSize: 12 }}
+                <RTooltip cursor={false} contentStyle={{ background: '#0d0b09', border: '1px solid rgba(212,175,90,0.32)', borderRadius: 8, fontSize: 12 }}
                   formatter={(v) => [inr(v) + ' kg', 'Balance']} />
                 <Bar dataKey="qty" radius={[10, 10, 10, 10]} barSize={46}>
                   {stores.map((s, idx) => (<Cell key={idx} fill={['#cd9f4a', '#7fa8c9', '#c17ea3'][idx % 3]} />))}
