@@ -1,12 +1,46 @@
 import { useState, useMemo } from 'react';
+import { Search } from 'lucide-react';
 import { aggregateItems, aggregateStores, inr, fifoColor } from '../lib/fifo.js';
+
+function SortTh({ label, sortField, className, sortKey, sortDir, onSort }) {
+  const active = sortKey === sortField;
+  return (
+    <th className={`sortable${className ? ' ' + className : ''}`} onClick={() => onSort(sortField)}>
+      {label}{active && <span className="ff-sort-arrow">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+    </th>
+  );
+}
 
 export default function StoresTab({ lots }) {
   const stores = useMemo(() => aggregateStores(lots), [lots]);
   const [focus, setFocus] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('fifoPct');
+  const [sortDir, setSortDir] = useState('asc');
   const activeFocus = focus || (stores[0] && stores[0].key);
   const storeRows = lots.filter(l => l.cold_store === activeFocus);
   const storeItems = useMemo(() => aggregateItems(storeRows), [storeRows]);
+
+  function onSort(key) {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir(key === 'key' ? 'asc' : 'desc'); }
+  }
+
+  const filteredItems = useMemo(() => {
+    let rows = storeItems;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(i => i.key.toLowerCase().includes(q));
+    }
+    rows = [...rows].sort((a, b) => {
+      let av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return rows;
+  }, [storeItems, search, sortKey, sortDir]);
 
   return (
     <div>
@@ -42,14 +76,27 @@ export default function StoresTab({ lots }) {
       </div>
       <div className="ff-panel">
         <div className="ff-panel-head">
-          <div className="ff-panel-title">Item Breakdown — {activeFocus}</div>
-          <div className="ff-panel-note">select a cold store above to change focus</div>
+          <div>
+            <div className="ff-panel-title">Item Breakdown — {activeFocus}</div>
+            <div className="ff-panel-note">{filteredItems.length} of {storeItems.length} items &middot; select a cold store above to change focus</div>
+          </div>
+          <div className="ff-search-wrap">
+            <Search size={14} />
+            <input className="ff-input" placeholder="Search item..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
         </div>
         <div className="ff-tbl-wrap">
           <table className="ff-table">
-            <thead><tr><th>Item</th><th className="num">Lots</th><th className="num">Violations</th><th className="num">FIFO %</th><th className="num">Balance Qty (kg)</th><th className="num">Oldest Pending (d)</th></tr></thead>
+            <thead><tr>
+              <SortTh label="Item" sortField="key" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Lots" sortField="totalLots" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Violations" sortField="violations" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="FIFO %" sortField="fifoPct" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Balance Qty (kg)" sortField="balanceQty" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Oldest Pending (d)" sortField="oldestAge" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            </tr></thead>
             <tbody>
-              {storeItems.map(i => (
+              {filteredItems.map(i => (
                 <tr key={i.key}>
                   <td className="strong">{i.key}</td>
                   <td className="num">{i.totalLots}</td>
