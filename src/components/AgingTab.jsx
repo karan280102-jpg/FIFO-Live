@@ -1,34 +1,76 @@
 import { useState, useMemo, Fragment } from 'react';
+import { Search } from 'lucide-react';
 import { aggregateAgingByItem, inr, fmtDate } from '../lib/fifo.js';
 import { AGING_BUCKETS } from '../lib/constants.js';
+
+function SortTh({ label, sortField, className, sortKey, sortDir, onSort }) {
+  const active = sortKey === sortField;
+  return (
+    <th className={`sortable${className ? ' ' + className : ''}`} onClick={() => onSort(sortField)}>
+      {label}{active && <span className="ff-sort-arrow">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+    </th>
+  );
+}
 
 export default function AgingTab({ lots }) {
   const items = useMemo(() => aggregateAgingByItem(lots), [lots]);
   const lastKey = AGING_BUCKETS[AGING_BUCKETS.length - 1].key;
   const [expanded, setExpanded] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('total');
+  const [sortDir, setSortDir] = useState('desc');
   const colCount = AGING_BUCKETS.length + 5;
+
+  function onSort(key) {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir(key === 'sku' ? 'asc' : 'desc'); }
+  }
 
   function bucketColorFor(aging) {
     const b = AGING_BUCKETS.find(b => aging >= b.min && aging <= b.max);
     return b ? b.color : '#a89a83';
   }
 
+  const filtered = useMemo(() => {
+    let rows = items;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(i => i.sku.toLowerCase().includes(q) || i.coldStores.some(c => c.toLowerCase().includes(q)));
+    }
+    rows = [...rows].sort((a, b) => {
+      let av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return rows;
+  }, [items, search, sortKey, sortDir]);
+
   return (
     <div className="ff-panel">
       <div className="ff-panel-head">
-        <div className="ff-panel-title">Item-Wise Aging Breakdown</div>
-        <div className="ff-panel-note">{items.length} items holding balance &middot; click a row to see lot numbers</div>
+        <div>
+          <div className="ff-panel-title">Item-Wise Aging Breakdown</div>
+          <div className="ff-panel-note">{filtered.length} of {items.length} items holding balance &middot; click a row to see lot numbers</div>
+        </div>
+        <div className="ff-search-wrap">
+          <Search size={14} />
+          <input className="ff-input" placeholder="Search item or cold store..." value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
       </div>
       <div className="ff-tbl-wrap">
         <table className="ff-table">
           <thead><tr>
             <th></th>
-            <th>Item</th><th>Cold Store(s)</th>
-            {AGING_BUCKETS.map(b => <th key={b.key} className="num">{b.label} (kg)</th>)}
-            <th className="num">Total Balance (kg)</th><th className="num">Oldest Pending (d)</th>
+            <SortTh label="Item" sortField="sku" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            <th>Cold Store(s)</th>
+            {AGING_BUCKETS.map(b => <SortTh key={b.key} label={`${b.label} (kg)`} sortField={b.key} className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />)}
+            <SortTh label="Total Balance (kg)" sortField="total" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            <SortTh label="Oldest Pending (d)" sortField="oldestAge" className="num" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
           </tr></thead>
           <tbody>
-            {items.map(i => {
+            {filtered.map(i => {
               const isOpen = expanded === i.sku;
               const lotRows = isOpen
                 ? lots.filter(l => l.sku === i.sku && l.pending_qty > 0).sort((a, b) => b.aging - a.aging)
