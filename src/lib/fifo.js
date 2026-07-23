@@ -66,7 +66,7 @@ export function computeFifo(rawLots) {
   return rows;
 }
 
-function export aggregateBy(rows, keyFn) {
+export function aggregateBy(rows, keyFn) {
   const map = {};
   rows.forEach(r => {
     const key = keyFn(r);
