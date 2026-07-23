@@ -39,19 +39,22 @@ export default function OverviewTab({ lots }) {
           <div className="ff-panel-title">FIFO Compliance — Items Needing Attention</div>
           <div className="ff-panel-note">lowest-scoring items · full list under Item-Wise</div>
         </div>
-        <div style={{ height: Math.max(380, worstItems.length * 40 + 30) }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={worstItems} layout="vertical" margin={{ top: 4, right: 60, left: 4, bottom: 4 }}>
-              <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6e6455', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" width={520} tick={{ fill: '#a89a83', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} />
-              <RTooltip cursor={false} contentStyle={{ background: '#0d0b09', border: '1px solid rgba(212,175,90,0.32)', borderRadius: 8, fontSize: 12 }}
-                formatter={(v) => [v + '%', 'FIFO']} labelStyle={{ color: '#f3ede0' }} />
-              <Bar dataKey="pct" radius={[4, 4, 4, 4]} barSize={18}>
-                {worstItems.map((it, idx) => (<Cell key={idx} fill={it.color} />))}
-                <LabelList dataKey="pct" position="right" formatter={(v) => v + '%'} fill="#a89a83" fontSize={10.5} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="ff-meter-grid">
+          {worstItems.map(item => {
+            const r = 36, circ = Math.PI * r;
+            const dash = circ * (item.pct / 100);
+            return (
+              <div key={item.name} className="ff-meter-card">
+                <svg width="86" height="52" viewBox="0 0 86 52">
+                  <path d="M 7 46 A 36 36 0 0 1 79 46" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" strokeLinecap="round" />
+                  <path d="M 7 46 A 36 36 0 0 1 79 46" fill="none" stroke={item.color} strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={`${dash} ${circ}`} />
+                  <text x="43" y="40" textAnchor="middle" fontSize="15" fontWeight="700" fill="#f3ede0">{item.pct}%</text>
+                </svg>
+                <div className="ff-meter-name">{item.name}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
