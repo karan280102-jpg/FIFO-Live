@@ -19,7 +19,7 @@ export default function OverviewTab({ lots }) {
   const stores = useMemo(() => aggregateStores(lots), [lots]);
   const watchItems = items.filter(i => i.violations > 0).slice(0, 8);
   const worstItems = items.slice(0, 12).map(i => ({
-    name: i.key.length > 34 ? i.key.slice(0, 34) + '…' : i.key,
+    name: i.key,
     pct: Math.round(i.fifoPct), color: fifoColor(i.fifoPct)
   }));
 
@@ -39,11 +39,11 @@ export default function OverviewTab({ lots }) {
           <div className="ff-panel-title">FIFO Compliance — Items Needing Attention</div>
           <div className="ff-panel-note">lowest-scoring items · full list under Item-Wise</div>
         </div>
-        <div style={{ height: Math.max(360, worstItems.length * 38 + 30) }}>
+        <div style={{ height: Math.max(420, worstItems.length * 58 + 30) }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={worstItems} layout="vertical" margin={{ top: 4, right: 60, left: 4, bottom: 4 }}>
               <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6e6455', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" width={230} tick={{ fill: '#a89a83', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={320} tick={{ fill: '#a89a83', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
               <RTooltip contentStyle={{ background: '#0d0b09', border: '1px solid rgba(212,175,90,0.32)', borderRadius: 8, fontSize: 12 }}
                 formatter={(v) => [v + '%', 'FIFO']} labelStyle={{ color: '#f3ede0' }} />
               <Bar dataKey="pct" radius={[4, 4, 4, 4]} barSize={18}>
