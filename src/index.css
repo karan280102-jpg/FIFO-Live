@@ -6,8 +6,50 @@ html, body, #root { height: 100%; margin: 0; }
 .ff-spin{ animation: ff-spin 1s linear infinite; }
 @keyframes ff-spin{ to{ transform:rotate(360deg); } }
 
-.ff-login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 20%, #1c1712 0%, #0a0908 70%); padding:30px 16px; }
-.ff-login-card{ width:100%; max-width:380px; background:#151210; border:1px solid rgba(212,175,90,0.18); border-radius:14px; padding:30px 26px; }
+.ff-login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; background:radial-gradient(ellipse at 50% 20%, #1c1712 0%, #0a0908 70%); padding:30px 16px; }
+.ff-aurora{ position:absolute; inset:-20%; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 620px 520px at 18% 22%, rgba(205,159,74,0.18), transparent 60%),
+    radial-gradient(ellipse 520px 520px at 82% 72%, rgba(127,168,201,0.11), transparent 60%),
+    radial-gradient(ellipse 700px 600px at 60% 8%, rgba(193,126,163,0.08), transparent 60%);
+  animation: ff-aurora-drift 20s ease-in-out infinite alternate;
+  filter: blur(12px);
+}
+@keyframes ff-aurora-drift{ 0%{ transform:translate(0,0) scale(1); } 100%{ transform:translate(3%,-4%) scale(1.08); } }
+.ff-grid-overlay{ position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image: linear-gradient(rgba(212,175,90,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,90,0.04) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 40%, transparent 90%);
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 40%, transparent 90%);
+}
+.ff-lane-intro{ display:flex; gap:7px; justify-content:center; align-items:flex-end; height:32px; margin-bottom:18px; }
+.ff-lane-intro .blk{ width:20px; border-radius:4px 4px 2px 2px; opacity:0; transform:translateY(14px) scale(0.85); background:linear-gradient(160deg,#f2c565,#8a6f3a); animation: ff-lane-block-in 0.55s cubic-bezier(.2,.8,.2,1) forwards; }
+.ff-lane-intro .blk:nth-child(1){ height:14px; animation-delay:0.05s; }
+.ff-lane-intro .blk:nth-child(2){ height:20px; animation-delay:0.15s; }
+.ff-lane-intro .blk:nth-child(3){ height:27px; animation-delay:0.25s; background:linear-gradient(160deg,#e9e2d2,#8a8072); }
+.ff-lane-intro .blk:nth-child(4){ height:18px; animation-delay:0.35s; }
+.ff-lane-intro .blk:nth-child(5){ height:24px; animation-delay:0.45s; }
+@keyframes ff-lane-block-in{ to{ opacity:1; transform:translateY(0) scale(1); } }
+.ff-login-mark-wrap{ position:relative; width:56px; height:56px; margin:0 auto 16px; }
+.ff-login-mark-glow{ position:absolute; inset:-14px; border-radius:50%; background:radial-gradient(circle, rgba(242,197,101,0.38), transparent 70%); filter:blur(4px); animation: ff-glow-pulse 2.6s ease-in-out infinite; }
+@keyframes ff-glow-pulse{ 0%,100%{ opacity:0.5; transform:scale(0.92); } 50%{ opacity:1; transform:scale(1.06); } }
+.ff-hero-eyebrow{ text-align:center; color:#cd9f4a; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.28em; text-transform:uppercase; margin-bottom:8px; }
+.ff-hero-title{ font-family:'Bebas Neue',sans-serif; font-size:38px; text-align:center; letter-spacing:0.04em; line-height:1;
+  background:linear-gradient(100deg, #f3ede0 20%, #f2c565 45%, #cd9f4a 55%, #f3ede0 80%); background-size:250% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent; animation:ff-title-shimmer 5s ease-in-out infinite; }
+@keyframes ff-title-shimmer{ 0%{ background-position:0% 0; } 100%{ background-position:-200% 0; } }
+.ff-fade-up{ opacity:0; animation: ff-fade-up 0.6s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes ff-fade-up{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+@media(prefers-reduced-motion: reduce){
+  .ff-aurora, .ff-hero-title, .ff-login-mark-glow, .ff-lane-intro .blk, .ff-fade-up, .ff-login-card{ animation:none !important; opacity:1 !important; transform:none !important; }
+}
+.ff-login-card{ width:100%; max-width:380px; background:#151210; border:1px solid rgba(212,175,90,0.18); border-radius:14px; padding:30px 26px; position:relative; z-index:1;
+  animation: ff-card-in 0.7s cubic-bezier(.2,.8,.2,1) both, ff-card-glow 4.5s ease-in-out infinite 0.7s; }
+@keyframes ff-card-in{ from{ opacity:0; transform:translateY(18px) scale(0.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+@keyframes ff-card-glow{
+  0%,100%{ box-shadow:0 0 0 1px rgba(212,175,90,0.16), 0 20px 60px -20px rgba(0,0,0,0.6); }
+  50%{ box-shadow:0 0 0 1px rgba(242,197,101,0.38), 0 20px 70px -15px rgba(205,159,74,0.22); }
+}
       .ff-login-mark{ width:44px; height:44px; margin:0 auto 14px; border-radius:10px; background:linear-gradient(150deg,#f2c565,#8a6f3a); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue'; color:#161310; font-size:22px; }
       .ff-login-tabs{ display:flex; gap:4px; background:#1a1613; border:1px solid rgba(212,175,90,0.14); border-radius:8px; padding:4px; margin:20px 0 16px; }
       .ff-login-tabs button{ flex:1; background:none; border:none; color:#a89a83; padding:9px; border-radius:6px; font-size:12.5px; font-weight:700; font-family:inherit; }
@@ -25,8 +67,10 @@ html, body, #root { height: 100%; margin: 0; }
       .ff-role-pick button{ flex:1; background:#1a1613; border:1px solid rgba(212,175,90,0.18); color:#a89a83; padding:9px; border-radius:6px; font-size:12.5px; font-weight:700; font-family:inherit; }
       .ff-role-pick button.active{ background:#cd9f4a; color:#161310; border-color:#cd9f4a; }
       .ff-error{ color:#c15a4e; font-size:12px; margin-top:10px; }
-      .ff-btn-primary{ background:#cd9f4a; color:#161310; border:none; padding:12px 20px; border-radius:6px; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:8px; justify-content:center; font-family:inherit; }
+      .ff-btn-primary{ background:#cd9f4a; color:#161310; border:none; padding:12px 20px; border-radius:6px; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:8px; justify-content:center; font-family:inherit; position:relative; overflow:hidden; transition:background 0.2s ease; }
       .ff-btn-primary:hover{ background:#f2c565; }
+      .ff-btn-primary::after{ content:''; position:absolute; top:0; left:-60%; width:35%; height:100%; background:linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent); transform:skewX(-20deg); transition:left 0.6s ease; }
+      .ff-btn-primary:hover::after{ left:130%; }
       .ff-login-note{ display:flex; gap:8px; margin-top:20px; font-size:11px; color:#6e6455; line-height:1.5; }
 
       .ff-header{ position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:14px 22px; background:rgba(10,9,8,0.92); border-bottom:1px solid rgba(212,175,90,0.14); }
