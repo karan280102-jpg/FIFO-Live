@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { supabase, configMissing } from './lib/supabaseClient.js';
-import { computeFifo } from './lib/fifo.js';
+import { computeFifo, todayStr } from './lib/fifo.js';
 import { exportToExcel } from './lib/exportExcel.js';
 import Auth from './components/Auth.jsx';
 import Header from './components/Header.jsx';
@@ -89,31 +89,29 @@ export default function App() {
     else showToast(`New lot ${form.lotNo} added for ${form.sku.slice(0, 40)}.`);
   }
 
-  async function handleDispatch({ lotId, outQty, outBox }) {
+  function findBlockers(lot) {
+    return computedLots.filter(l =>
+      l.cold_store === lot.cold_store && l.sku === lot.sku && l.id !== lot.id && l.pending_qty > 0 && l.dateObj < lot.dateObj
+    );
+  }
+
+  async function handleDispatch({ lotId, outQty, outBox, reason }) {
     const lot = computedLots.find(l => l.id === lotId);
     if (!lot) return;
 
-    const blockers = computedLots.filter(l =>
-      l.cold_store === lot.cold_store && l.sku === lot.sku && l.id !== lot.id && l.pending_qty > 0 && l.dateObj < lot.dateObj
-    );
+    const blockers = findBlockers(lot);
 
     if (blockers.length > 0) {
       const blockerPayload = blockers.map(b => ({ lot_no: b.lot_no, lot_date: b.lot_date, pending_qty: b.pending_qty }));
-      const { data: inserted, error } = await supabase.from('approvals').insert({
+      const { error } = await supabase.from('approvals').insert({
+        action_type: 'dispatch',
         lot_id: lot.id, cold_store: lot.cold_store, sku: lot.sku, lot_no: lot.lot_no, lot_date: lot.lot_date,
         out_qty: outQty, out_box: outBox, requested_by: profile.id, requested_by_name: profile.name,
-        blockers: blockerPayload
-      }).select().single();
+        blockers: blockerPayload, reason: reason || null
+      });
 
       if (error) { showToast('Could not create approval request: ' + error.message, 'error'); return; }
-      showToast('This dispatch would break FIFO order — sent to the admin for approval.', 'warn');
-
-      const { data: fnResult, error: fnError } = await supabase.functions.invoke('send-approval-email', {
-        body: { item: lot.sku, coldStore: lot.cold_store, lotNo: lot.lot_no, qty: outQty, requestedBy: profile.name, blockers: blockerPayload }
-      });
-      const emailOk = !fnError && fnResult?.ok;
-      await supabase.from('approvals').update({ email_sent: !!emailOk }).eq('id', inserted.id);
-      if (!emailOk) showToast('Approval saved, but the alert email may not have gone through — check Approvals directly.', 'warn');
+      showToast('This dispatch would break FIFO order — sent to the Approvals tab for admin review.', 'warn');
     } else {
       const { error } = await supabase.from('lots').update({
         out_qty: Number(lot.out_qty) + outQty,
@@ -126,31 +124,84 @@ export default function App() {
     }
   }
 
+  async function applyTransfer(lot, qty, box, toColdStore, toLotNo, notes, markException) {
+    const srcUpdate = {
+      out_qty: Number(lot.out_qty) + qty,
+      pending_qty: Math.max(0, Number(lot.pending_qty) - qty),
+      out_box: Number(lot.out_box) + box,
+      pending_box: Math.max(0, Number(lot.pending_box) - box)
+    };
+    if (markException) {
+      srcUpdate.exception_approved_by = profile.id;
+      srcUpdate.exception_approved_by_name = profile.name;
+      srcUpdate.exception_approved_at = new Date().toISOString();
+    }
+    const { error: srcErr } = await supabase.from('lots').update(srcUpdate).eq('id', lot.id);
+    if (srcErr) { showToast('Could not update source lot: ' + srcErr.message, 'error'); return false; }
+
+    const { error: dstErr } = await supabase.from('lots').insert({
+      lot_date: todayStr(), cold_store: toColdStore, sku: lot.sku,
+      importer: notes ? notes.slice(0, 120) : 'Internal transfer', lot_no: toLotNo,
+      box_qty: box, out_box: 0, pending_box: box,
+      inward_qty: qty, out_qty: 0, pending_qty: qty, pv_remark: 'Done',
+      entered_by: profile.id, entered_by_name: profile.name
+    });
+    if (dstErr) { showToast('Source lot updated, but the destination lot failed: ' + dstErr.message, 'error'); return false; }
+    return true;
+  }
+
+  async function handleTransfer({ lotId, qty, box, toColdStore, toLotNo, notes, reason }) {
+    const lot = computedLots.find(l => l.id === lotId);
+    if (!lot) return;
+
+    const blockers = findBlockers(lot);
+
+    if (blockers.length > 0) {
+      const blockerPayload = blockers.map(b => ({ lot_no: b.lot_no, lot_date: b.lot_date, pending_qty: b.pending_qty }));
+      const { error } = await supabase.from('approvals').insert({
+        action_type: 'transfer',
+        lot_id: lot.id, cold_store: lot.cold_store, sku: lot.sku, lot_no: lot.lot_no, lot_date: lot.lot_date,
+        out_qty: qty, out_box: box, requested_by: profile.id, requested_by_name: profile.name,
+        blockers: blockerPayload, to_cold_store: toColdStore, to_lot_no: toLotNo, reason: reason || null
+      });
+      if (error) { showToast('Could not create transfer request: ' + error.message, 'error'); return; }
+      showToast('This transfer would break FIFO order at the source — sent to the Approvals tab for admin review.', 'warn');
+    } else {
+      const ok = await applyTransfer(lot, qty, box, toColdStore, toLotNo, notes, false);
+      if (ok) showToast(`Transferred ${qty} kg to ${toColdStore} as lot ${toLotNo}.`);
+    }
+  }
+
   async function handleApprove(reqId) {
     const req = approvals.find(a => a.id === reqId);
     const lot = lots.find(l => l.id === req.lot_id);
     if (!req || !lot) return;
 
-    const { error: lotErr } = await supabase.from('lots').update({
-      out_qty: Number(lot.out_qty) + Number(req.out_qty),
-      pending_qty: Math.max(0, Number(lot.pending_qty) - Number(req.out_qty)),
-      out_box: Number(lot.out_box) + Number(req.out_box || 0),
-      pending_box: Math.max(0, Number(lot.pending_box) - Number(req.out_box || 0)),
-      exception_approved_by: profile.id, exception_approved_by_name: profile.name, exception_approved_at: new Date().toISOString()
-    }).eq('id', lot.id);
-    if (lotErr) { showToast('Could not apply the dispatch: ' + lotErr.message, 'error'); return; }
+    if (req.action_type === 'transfer') {
+      const ok = await applyTransfer(lot, Number(req.out_qty), Number(req.out_box || 0), req.to_cold_store, req.to_lot_no, null, true);
+      if (!ok) return;
+    } else {
+      const { error: lotErr } = await supabase.from('lots').update({
+        out_qty: Number(lot.out_qty) + Number(req.out_qty),
+        pending_qty: Math.max(0, Number(lot.pending_qty) - Number(req.out_qty)),
+        out_box: Number(lot.out_box) + Number(req.out_box || 0),
+        pending_box: Math.max(0, Number(lot.pending_box) - Number(req.out_box || 0)),
+        exception_approved_by: profile.id, exception_approved_by_name: profile.name, exception_approved_at: new Date().toISOString()
+      }).eq('id', lot.id);
+      if (lotErr) { showToast('Could not apply the dispatch: ' + lotErr.message, 'error'); return; }
+    }
 
     await supabase.from('approvals').update({
       status: 'approved', decided_by: profile.id, decided_by_name: profile.name, decided_at: new Date().toISOString()
     }).eq('id', reqId);
-    showToast('Dispatch approved and applied to live data.');
+    showToast(req.action_type === 'transfer' ? 'Transfer approved and applied.' : 'Dispatch approved and applied to live data.');
   }
 
   async function handleReject(reqId) {
     await supabase.from('approvals').update({
       status: 'rejected', decided_by: profile.id, decided_by_name: profile.name, decided_at: new Date().toISOString()
     }).eq('id', reqId);
-    showToast('Dispatch request rejected — no change applied.');
+    showToast('Request rejected — no change applied.');
   }
 
   async function handleDeleteLot(lotId) {
@@ -195,7 +246,7 @@ export default function App() {
       <Nav view={view} setView={setView} pendingCount={pendingCount} />
       <div className="ff-main">
         {view === 'overview' && <OverviewTab lots={computedLots} />}
-        {view === 'entry' && <EntryTab lots={computedLots} onNewLot={handleNewLot} onDispatch={handleDispatch} />}
+        {view === 'entry' && <EntryTab lots={computedLots} onNewLot={handleNewLot} onDispatch={handleDispatch} onTransfer={handleTransfer} />}
         {view === 'items' && <ItemsTab lots={computedLots} />}
         {view === 'stores' && <StoresTab lots={computedLots} />}
         {view === 'aging' && <AgingTab lots={computedLots} />}
